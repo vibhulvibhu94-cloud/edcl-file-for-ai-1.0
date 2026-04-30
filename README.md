@@ -1,8 +1,5 @@
 # External Deterministic Control Layer (V3 Enterprise)
 
-**Status:** Pilot-Ready / Evaluation-Ready (V3.0)  
-**License:** Dual License (See Below)  
-**Domain:** Education & Student AI Safety
 
 ---
 
@@ -124,11 +121,7 @@ if result['action'] == 'REFUSE':
 
 *Note: EDCL is a technical control layer, not a legal compliance certification.*
 
-**License:**
-
-* **Source Code:** MIT (Evaluation / Research Use)
-* **Commercial Use:** Enterprise License Required
-
+*
 ---
 
 **© 2026 AI Systems Research** - *Safety First, Always.*

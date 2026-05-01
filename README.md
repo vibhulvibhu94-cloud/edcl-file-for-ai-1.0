@@ -52,7 +52,7 @@ It acts as a firewall between your LLM and your users, ensuring compliance with 
 
 ## 📊 Benchmark Verification
 
-The V3 system has been validated against a formal adversarial dataset.
+The  system has been validated against a formal adversarial dataset.
 
 * **Attack Success Rate (ASR):** < 1% (On Evaluated Benchmark)
 * **False Refusal Rate (FRR):** < 5% (On Evaluated Safe Vectors)
@@ -76,7 +76,7 @@ python benchmark_v3.py
 ## 📂 Architecture
 
 ```text
-ai_safety_v3/
+ai_safety_v1/
 ├── core/
 │   ├── detector.py       # Layer 1: Signals & Risk
 │   ├── verifier.py       # Layer 2: Math Constraints
@@ -91,7 +91,7 @@ ai_safety_v3/
 ## 🔌 Integration
 
 ```python
-from ai_safety_v3.interface import SafetyControlV3
+from ai_safety_v1.interface import SafetyControlV3
 
 # Initialize (Singleton)
 safety = SafetyControlV3()

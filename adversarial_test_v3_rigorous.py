@@ -13,7 +13,7 @@ Attack Vectors:
 import sys
 import base64
 sys.path.append('.')
-from ai_safety_v3.interface import SafetyControlV3
+from interface import SafetyControlV3
 
 def run_red_team():
     v3 = SafetyControlV3()

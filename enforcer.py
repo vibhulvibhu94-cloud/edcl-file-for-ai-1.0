@@ -29,13 +29,17 @@ class Enforcer:
         if not verification_result['passed']:
             if "HARD_OVERRIDE_TRIGGERED" in violations:
                 return self._refuse("CRITICAL")
-            if "RISK_EXCEEDS_MAX_ALLOWABLE" in violations:
+
+            # Policy-aware risk check
+            if any("RISK_EXCEEDS_MAX_ALLOWABLE" in v for v in violations):
                 # Differentiate topic if possible
                 if context.get('topic') == 'medical':
                     return self._refuse("MEDICAL")
                 return self._refuse("UNSAFE")
-            if "CONFIDENCE_LOWER_THAN_RISK" in violations:
+
+            if "CONFIDENCE_LOWER_THAN_RISK_REQUIREMENT" in violations:
                 return self._refuse("UNSAFE")
+
             if "HYPOTHETICAL_RISK_DETECTED" in violations:
                 return self._refuse("UNSAFE")
                 

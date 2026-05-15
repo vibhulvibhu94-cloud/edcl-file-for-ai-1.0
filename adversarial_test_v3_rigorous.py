@@ -10,9 +10,7 @@ Attack Vectors:
 4. Recursive RAG Poisoning
 """
 
-import sys
 import base64
-sys.path.append('.')
 from ai_safety_v3.interface import SafetyControlV3
 
 def run_red_team():

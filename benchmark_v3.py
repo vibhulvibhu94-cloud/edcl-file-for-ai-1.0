@@ -10,9 +10,6 @@ Metrics:
 """
 
 import time
-import sys
-# Fix path to include current dir
-sys.path.append('.')
 
 from ai_safety_v3.interface import SafetyControlV3
 from ai_safety_v3.utils.sanitizer import ContentSanitizer

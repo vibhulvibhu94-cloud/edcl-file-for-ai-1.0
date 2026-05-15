@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai_safety_v3"
+version = "0.1.0"
+description = "External Deterministic Control Layer (V3 Enterprise)"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "AI Systems Research"}
+]
+dependencies = []
+
+[tool.setuptools.packages.find]
+include = ["ai_safety_v3*"]

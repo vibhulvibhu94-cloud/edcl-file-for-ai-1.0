@@ -5,12 +5,17 @@ The main entry point for the enterprise-ready safety system.
 Orchestrates Detection, Verification, and Enforcement layers.
 """
 
+import logging
 from typing import Dict, List, Optional
-from .core.detector import Detector
-from .core.verifier import Verifier
-from .core.enforcer import Enforcer
-from .core.state_manager import StateManager
-from .utils.sanitizer import ContentSanitizer
+from detector import Detector
+from verifier import Verifier
+from enforcer import Enforcer
+from state_manager import StateManager
+from sanitizer import ContentSanitizer
+
+# Configure auditing
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("SafetyControlV3")
 
 class SafetyControlV3:
     def __init__(self):
@@ -18,10 +23,10 @@ class SafetyControlV3:
         self.verifier = Verifier()
         self.enforcer = Enforcer()
         self.state_manager = StateManager()
-        
-    def process_request(self, 
-                       user_query: str, 
-                       model_output: str, 
+
+    def process_request(self,
+                       user_query: str,
+                       model_output: str,
                        session_id: str = "default_session",
                        retrieved_docs: Optional[List[str]] = None,
                        policy_mode: str = "EDU") -> Dict:
@@ -31,20 +36,16 @@ class SafetyControlV3:
         2. RAG Sanitization (if docs present)
         3. Layer 1: Detection
         4. Layer 2: Verification
-        5. Layer 3: Enforcement
+        5. Layer 3: Enforcement (Includes Output Scanning)
         6. State Update
-        
-        Args:
-            policy_mode: "EDU" (default), "STRICT", or "RESEARCH".
-                         Controls sensitivity and refusal thresholds.
         """
-        
+
         # 0. Apply Policy Configuration
-        # In a full implementation, this would adjust thresholds dynamically.
-        # For now, we log the mode for audit.
-        
+        logger.info(f"Processing request for session '{session_id}' in '{policy_mode}' policy mode.")
+
         # 1. Check Session State (Multi-Turn Poisoning Defense)
         if self.state_manager.is_locked(session_id):
+            logger.warning(f"Session '{session_id}' is locked. Blocking request.")
             return {
                 "action": "BLOCK_SESSION",
                 "final_output": "Session suspended due to repeated safety violations.",
@@ -52,56 +53,60 @@ class SafetyControlV3:
             }
 
         # 2. RAG Defense (Indirect Injection)
-        # We don't change the query/output here, but in a real system we might 
-        # return the sanitized context to be used *before* generation.
-        # Here we assume generation happened, but we scan the inputs for audit.
         sanitized_context = ""
         if retrieved_docs:
             sanitized_context = ContentSanitizer.format_for_context(user_query, retrieved_docs)
-            # In a full integration, `sanitized_context` is what you'd send to the LLM.
 
         # 3. Layer 1: Detection
-        # If sanitized context exists, we should technically check if *it* influenced the output,
-        # but for this control layer, we check the final output alignment.
-        analysis = self.detector.analyze(user_query, model_output)
-        
+        # Evaluate user query (decoded inside analyze)
+        analysis = self.detector.analyze(user_query, model_output, session_id)
+
         # 4. Layer 2: Verification
         verification = self.verifier.verify(analysis, policy=policy_mode)
-        
-        # 5. Layer 3: Enforcement
+
+        # 5. Layer 3: Enforcement (Now scans model_output inside enforce!)
         result = self.enforcer.enforce(
-            verification, 
-            model_output, 
-            context={"topic": analysis["topic"], "policy_mode": policy_mode}
+            verification,
+            model_output,
+            context={
+                "topic": analysis.get("topic", "general"),
+                "policy_mode": policy_mode,
+                "original_input": user_query # required for unexpected compliance checking
+            }
         )
-        
+
         # Add audit trail
         result["audit_trail"] = {
             "scores": {
-                "risk": analysis["risk_score"],
-                "confidence": analysis["confidence_score"],
-                "severity": analysis["topic_severity"]
+                "risk": analysis.get("risk_score", 0.0),
+                "confidence": analysis.get("confidence_score", 0.0),
+                "severity": analysis.get("topic_severity", 0.0)
             },
-            "flags": analysis["flags"],
-            "violations": verification["violations"],
+            "flags": analysis.get("flags", []),
+            "violations": verification.get("violations", []),
             "session_id": session_id,
             "policy_mode": policy_mode
         }
-        
+
+        if result["action"] == "REFUSE":
+            logger.warning(f"Safety violation blocked for session '{session_id}': {verification.get('violations', [])}")
+
         # 6. Update State
+        # Feed the risk back into the multi-turn session tracking
         self.state_manager.update_risk(
-            session_id, 
-            analysis["risk_score"], 
-            user_query, 
+            session_id,
+            analysis.get("risk_score", 0.0),
+            user_query,
             result["action"]
         )
-        
+
         return result
 
     def get_session_stats(self, session_id: str) -> Dict:
         s = self.state_manager.get_session(session_id)
         return {
             "suspicion_score": s.suspicion_score,
+            "cumulative_risk": s.cumulative_risk,
             "is_locked": s.is_locked,
             "message_count": s.message_count
         }

@@ -6,11 +6,11 @@ Orchestrates Detection, Verification, and Enforcement layers.
 """
 
 from typing import Dict, List, Optional
-from .core.detector import Detector
-from .core.verifier import Verifier
-from .core.enforcer import Enforcer
-from .core.state_manager import StateManager
-from .utils.sanitizer import ContentSanitizer
+from detector import Detector
+from verifier import Verifier
+from enforcer import Enforcer
+from state_manager import StateManager
+from sanitizer import ContentSanitizer
 
 class SafetyControlV3:
     def __init__(self):

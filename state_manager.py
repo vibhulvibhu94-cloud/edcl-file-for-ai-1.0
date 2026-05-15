@@ -21,14 +21,14 @@ class SessionState:
 class StateManager:
     _instance = None
     _sessions: Dict[str, SessionState] = {}
-    
+
     # CONSTANTS
-    SUSPICION_DECAY = 0.95 # Slight decay per successful safe turn to allow redemption? 
+    SUSPICION_DECAY = 0.95 # Slight decay per successful safe turn to allow redemption?
                            # Actually, purely additive is safer for high security.
                            # Let's use a moving window or additive with threshold.
     MAX_SUSPICION = 10.0
     LOCKOUT_THRESHOLD = 8.0
-    
+
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super(StateManager, cls).__new__(cls)
@@ -38,16 +38,16 @@ class StateManager:
         if session_id not in self._sessions:
             self._sessions[session_id] = SessionState(session_id=session_id)
         return self._sessions[session_id]
-        
+
     def update_risk(self, session_id: str, turn_risk: float, query: str, action: str):
         """
         Updates session state with new turn data.
         """
         session = self.get_session(session_id)
-        
+
         if session.is_locked:
             return # Already locked
-            
+
         session.message_count += 1
         session.history.append({
             "timestamp": time.time(),
@@ -55,26 +55,23 @@ class StateManager:
             "turn_risk": turn_risk,
             "action": action
         })
-        
-        # Accumulate risk
-        # If the turn was risky (risk > 5), it adds to suspicion
-        if turn_risk > 4.0:
-            session.cumulative_risk += turn_risk
-            # Suspicion increases faster for consecutive high risks
-            session.suspicion_score = min(
-                self.MAX_SUSPICION, 
-                session.suspicion_score + (turn_risk * 0.5)
-            )
-        else:
-            # Slow decay for good behavior, but very slow
-            session.suspicion_score = max(0.0, session.suspicion_score - 0.1)
-            
+
+        # Accumulate risk using a decay-weighted sum
+        # This properly handles prompt chaining by weighing recent messages heavily
+        decay = 0.85
+        session.cumulative_risk = (session.cumulative_risk * decay) + turn_risk
+
+        session.suspicion_score = min(
+            self.MAX_SUSPICION,
+            session.cumulative_risk
+        )
+
         # Check lockout
         if session.suspicion_score >= self.LOCKOUT_THRESHOLD:
             session.is_locked = True
-            
+
     def is_locked(self, session_id: str) -> bool:
         return self.get_session(session_id).is_locked
-        
+
     def reset(self):
         self._sessions = {}
